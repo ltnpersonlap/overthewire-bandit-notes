@@ -1,4 +1,4 @@
-# OverTheWire Bandit – Walkthrough (Level 0 → 25)
+# OverTheWire Bandit – Walkthrough (Level 0 → 33)
 
 ## Mục lục
 
@@ -28,6 +28,14 @@
 - [Level 22 → 23](#level-22--23)
 - [Level 23 → 24](#level-23--24)
 - [Level 24 → 25](#level-24--25)
+- [Level 25 → 26](#level-25--26)
+- [Level 26 → 27](#level-26--27)
+- [Level 27 → 28](#level-27--28)
+- [Level 28 → 29](#level-28--29)
+- [Level 29 → 30](#level-29--30)
+- [Level 30 → 31](#level-30--31)
+- [Level 31 → 32](#level-31--32)
+- [Level 32 → 33](#level-32--33)
 
 ---
 
@@ -895,3 +903,255 @@ done
 > ```bash
 > chmod +x /tmp/bruteforce.sh
 > ```
+
+---
+
+## Level 25 → 26
+
+**Goal:** lấy file bandit26.sshkey trong bandit 25 về máy để đăng nhập vào bandit26
+
+**Step**
+
+1. Dùng lệnh:
+
+   ```bash
+   scp -p 2220 bandit25@bandit.labs.overthewire.org:/home/bandit26/bandit26.sshkey ~/bandit26.sshkey .
+   ```
+
+   Để lưu file bandit26.sshkey về máy local sau đó dùng file này để đăng nhập vào level kế tiếp.
+
+---
+
+## Level 26 → 27
+
+File passwd chứa thông tin cơ bản về tất cả user accounts trên hệ thống. mỗi dòng trong file đại diện cho một user. File này có để được đọc bởi mọi user nhưng chỉ có user root mới có quyền chỉnh sửa. Mỗi dòng có dạng:
+
+```
+username:password:UID:GID:comment:home:shell
+```
+
+| Trường | Ý nghĩa |
+|--------|---------|
+| `username` | tên đăng nhập của user |
+| `password` | Trước đây dùng để chứa mật khẩu mã hóa nhưng hiện nay thường là ký tự x (mật khẩu thật nằm trong /etc/shadow) |
+| `UID` | User ID (Mã định danh của user. root = 0) |
+| `GID` | Group ID (nhóm chính của User) |
+| `comment` | Thông tin mô tả (thường là tên đầy đủ hoặc ghi chú) |
+| `home` | Thư mục home của user. |
+| `shell` | Shell mặc định khi user đăng nhập (ví dụ /bin/bash, /bin/sh, hoặc /usr/sbin/nologin nếu không cho phép login) |
+
+### `vi`
+
+vi là 1 file editor cực kỳ mạnh mẽ. Trong vi/vim, dấu `:` chính là cách bạn chuyển sang Command-line mode (chế độ dòng lệnh). Đây là cơ chế quan trọng giúp bạn nhập các lệnh điều khiển thay vì soạn thảo văn bản.
+
+Lúc này bạn có thể gõ các lệnh để:
+
+- **Quản lý file:** `:w` (lưu), `:q` (thoát), `:wq` (lưu và thoát), `:q!` (thoát không lưu).
+- **Thiết lập tùy chọn:** `:set number` (hiện số dòng), `:set shell=/bin/bash` (đặt shell mặc định).
+- **Chạy lệnh hệ thống:** `:!ls` (chạy lệnh ls trong shell), `:!bash` (mở một phiên Bash tạm thời).
+
+**Goal:** Đường dẫn /bin/bash của level 26 đã bị thây đổi cần tìm cách đăng nhập vào bandit26.
+
+**Step:**
+
+1. Ở bandit25, Dùng lệnh: `cat /etc/passwd`. Trong file passwd bạn sẽ tìm đến dòng của user bandit26 sẽ như sau:
+
+   ```
+   bandit26:x:11026:11026:bandit level 26:/home/bandit26:/usr/bin/showtext
+   ```
+
+   - username: bandit26
+   - password: x
+   - UID: 11026
+   - GID: 11026
+   - comment: bandit level 26
+   - home: /home/bandit26
+   - shell: /usr/bin/showtext
+
+   Vấn đề là shell mặc định khi đăng nhập của level này là `/usr/bin/showtext` chứ không phải `/bin/bash`. showtext là 1 chương trình dùng để hiển thị văn bản. Nên ta không thể viết các lệnh shell vào đây để nó chạy được. Nhưng có 1 cơ chế là khi bạn thu nhỏ bản terminal thì showtext sẽ thu nhỏ văn bản lại và nếu số lượng dòng dài hơn vượt qua ngoài khung hiển thị terminal thì nó sẽ mở 1 trang (pager) như more hoặc less để hiển thị nội dung vừa trong 1 trang. more/les không chỉ dùng để hiển thị nội dung, chúng còn có 1 cơ chế cực quan trọng là phím tắt dể gọi editor. Khi bấm `v` pager sẽ gọi trình soạn thảo mặc định thường là vi.
+
+   và ta lợi dụng chế độ dòng lệnh của vi để có thể mở shell mặt định `/bin/bash`
+2. thu nhỏ màn hình terminal lại nhỏ nhất có thể chỉ đủ để hiển thị 2 đến 3 dòng để ép showtext sang chế độ pager.
+3. Dùng lệnh:
+
+   ```bash
+   ssh -p 2220 -i bandit26.sshkey bandit26@bandit.labs.overthewire.org
+   ```
+
+   để đăng nhập vào bandit26. Lúc này nó sẽ hiện lên 1 dòng ở góc dưới bên phải là `--More--(60%)`
+4. Bấm phím `v`
+5. Nhập vào `:set shell=/bin/bash` rồi ấn phím enter
+6. Nhập vào `:shell`
+7. lúc này nó sẽ mở shell bình thường.
+8. Dùng lệnh: `ls` để kiểm tra xem có gì. Lúc này bạn sẽ thấy 2 file là `bandit27-do` và `text.txt`
+9. Dùng lệnh: `file bandit27-do`. Lúc này bạn sẽ biết đây là file setuid.
+10. Dùng lệnh: `./bandit27-do cat /etc/bandit_pass/bandit27` Để lấy pass của level tiếp theo
+
+---
+
+## Level 27 → 28
+
+**Goal:** Cần clone repo từ git về để lấy mật khẩu
+
+### Git là gì?
+
+- Git là phần mềm quản lý phiên bản (Version Control System – VCS).
+- Cho phép theo dõi lịch sử thay đổi của file, đặc biệt là mã nguồn.
+- Hỗ trợ làm việc nhóm: nhiều người cùng chỉnh sửa code mà không bị xung đột.
+- Mỗi lập trình viên có một bản sao đầy đủ của repo trên máy tính, nên có thể làm việc offline.
+- Git khác với GitHub: Git là công cụ, còn GitHub là nền tảng lưu trữ và cộng tác dựa trên Git.
+
+### Tính năng chính
+
+- **Theo dõi lịch sử thay đổi:** biết ai sửa code, sửa lúc nào, sửa gì.
+- **Quay lại phiên bản cũ:** dễ dàng rollback nếu phiên bản mới có lỗi.
+- **Branching mạnh mẽ:** tạo nhánh để phát triển tính năng mới mà không ảnh hưởng đến nhánh chính.
+- **Làm việc offline:** commit, branch, merge ngay cả khi không có internet.
+- **Tốc độ cao và an toàn:** thiết kế để xử lý dự án lớn như Linux kernel
+
+### Một vài lệnh git cơ bản
+
+| Lệnh | Ý nghĩa |
+|------|---------|
+| `git init` | Tạo một repository Git trong thư mục hiện tại. |
+| `git clone <url>` | Tải toàn bộ repository từ server về máy. |
+| `git status` | xem file nào đã thay đổi, đang chờ commit. |
+| `git add <filename>` hoặc `git add .` | Đưa file hoặc toàn bộ thay đổi vào khu vực staging (Đây là bước chuẩn bị: bạn chọn những thay đổi nào sẽ được commit.). |
+| `git commit -m "Thông điệp commit"` | Lưu snapshot thay đổi vào lịch sử Git. |
+| `git log` | Hiển thị danh sách commit đã thực hiện với: Mã commit (SHA), Tác giả, Ngày giờ, Nội dung commit |
+| `git branch <branchname>` | Tạo một branch mới. |
+| `git checkout <branchname>` | Chuyển sang nhánh khác |
+| `git merge <branchname>` | Hợp nhất branch vào nhánh hiện tại. |
+| `git push origin <branchname>` | Gửi commit từ local lên server. |
+| `git pull origin <branchname>` | Lấy và đồng bộ code mới nhất từ server về local. |
+
+### Step
+
+1. Kiểm tra xem máy bạn đã cài git chưa: `git --version`. Nếu nó hiện version tức là đã cài git
+2. Dùng lệnh:
+
+   ```bash
+   git clone ssh://bandit27-git@bandit.labs.overthewire.org:2220/home/bandit27-git/repo
+   ```
+
+   Để tải repo về máy local
+3. Sau khi tải xong trong máy bạn sẽ có 1 thư mục tên repo
+4. Dùng lệnh: `cd repo` để vào file repo. và trong thư mục đó sẽ có 1 file tên là README. Đọc file đó để lấy mật khẩu
+
+---
+
+## Level 28 → 29
+
+**Goal:** Cần clone repo từ git về để lấy mật khẩu
+
+**Step:**
+
+1. Dùng lệnh:
+
+   ```bash
+   git clone ssh://bandit28-git@bandit.labs.overthewire.org:2220/home/bandit28-git/repo
+   ```
+
+   Để tải repo về
+2. Trong repo có 1 file là README.md. trong đó sẽ có ghi username và pass của bandit29 nhưng mật khẩu đã bị sửa đổi thành `xxxxxxxxxx`. Vậy để biết mật khẩu của là gì ta cần xem lại danh sách các commit đã thực hiện.
+3. Dùng lệnh: `git log` để xem danh sách commit đã thực hiện.
+4. Dùng lệnh: `git show <ID commit>`: để xem lại nội dung trước khi cập nhập Để lấy pass cho level tiếp theo
+
+---
+
+## Level 29 → 30
+
+**Goal:** Cần clone repo từ git về để lấy mật khẩu
+
+**Step:**
+
+1. Dùng lệnh:
+
+   ```bash
+   git clone ssh://bandit29-git@bandit.labs.overthewire.org:2220/home/bandit29-git/repo
+   ```
+
+   Để tải repo về
+2. Khi đọc README.md ta sẽ thấy: `password: <no passwords in production!>`
+3. Dùng lệnh: `git log` để xem lại các phiên bản cũ cũng không thấy pass
+4. Dùng lệnh: `git branch` để xem có nhánh nào ẩn không cũng không thấy
+5. Dùng lệnh: `git tag` để kiểm tra các tag cũng không có
+6. Kết luận pass không nằm trong remote hiện tại của ta mà có thể nằm đâu đó trên các remote trên server.
+7. Dùng lệnh: `git show-ref` để xem các nhánh remote khác trên server.
+8. ta sẽ thấy có nhánh `remotes/origin/dev`. Đó có thể là nhánh remote ta cần.
+9. DÙng lệnh: `git checkout origin/dev` để chuyển qua nhánh remote dev
+10. Đọc file README.md ta sẽ thấy pass cho level tiếp theo
+
+---
+
+## Level 30 → 31
+
+**Goal:** Cần clone repo từ git về để lấy mật khẩu
+
+**Step:**
+
+1. Dùng lệnh:
+
+   ```bash
+   git clone ssh://bandit30-git@bandit.labs.overthewire.org:2220/home/bandit30-git/repo
+   ```
+
+   Để tải repo về
+2. Đọc file README.md để xem coi có pass không
+3. Dùng lệnh: `git branch` để xem có nhánh khác không
+4. Dùng lệnh: `git tag` xem có tag ẩn không. Lúc này ta sẽ thấy 1 tag ẩn tên `secret`
+5. Dùng lệnh: `git show secret` Để xem nội dung của secret và ta sẽ thấy pass cho level kế tiếp
+
+---
+
+## Level 31 → 32
+
+**Goal:** push 1 file key.txt có nội dung 'May I come in?' lên branche master
+
+**Step:**
+
+1. Dùng lệnh:
+
+   ```bash
+   git clone ssh://bandit31-git@bandit.labs.overthewire.org:2220/home/bandit31-git/repo
+   ```
+
+   Để tải repo về
+2. Đọc file README.md để biết các thông tin như branch, content
+3. Dùng lệnh: `nano key.txt` tạo 1 file key.txt ngay trong thư mục repo và có nội dung là `'May I come in?'`
+4. Dùng lệnh: `git add key.txt` Để đưa file vào môi trường chỉnh sửa chuẩn bị đẩy lên server
+5. Dùng lệnh: `git commit -m "key.txt"` Để thông báo nội dung cần push lên. Nếu ở bước này hiện:
+
+   ```
+   Author identity unknown
+   *** Please tell me who you are.
+   Run
+     git config --global user.email "you@example.com"
+     git config --global user.name "Your Name"
+   ```
+
+   Nghĩa là bạn chưa cho biết bạn thông tin của bạn. Nêu Dùng lệnh `git config --global user.email "you@example.com"` để cung cấp email của bạn và `git config --global user.name "Your Name"` Để cung cấp tên của bạn. Xong sau đó dùng lại `git commit`
+6. `git push origin master` để đẩy file key.txt lên nhánh master.
+7. Bạn sẽ nhận được thông báo:
+
+   ```
+   remote: ### Attempting to validate files... ####
+   remote:
+   remote: .oOo.oOo.oOo.oOo.oOo.oOo.oOo.oOo.oOo.oOo.
+   remote:
+   remote: Well done! Here is the password for the next level:
+   remote: pass bandit32
+   remote:
+   remote: .oOo.oOo.oOo.oOo.oOo.oOo.oOo.oOo.oOo.oOo.
+   remote:
+   ```
+
+---
+
+## Level 32 → 33
+
+**Goal:** Thoát khỏi uppercase shell
+
+Khi bạn đăng nhập vào bandit 32 bạn sẽ "WELCOME TO THE UPPERCASE SHELL". Tức cả các lệnh bạn gõ vào đều bị in hoa lên hết nên không dùng được bất kỳ lệnh nào. Đây thật chất là 1 tiến trình đang chạy ngay khi bạn đăng nhập vào. Nên để thoạt khỏi tiếng trình này ta dùng `$0`. `$0` Thật chất là 1 biến đặt biệt do chương trình tạo ra để lưu tên/đường dẫn của chính shell đang chạy. và UPPERCASE chỉ in hoa các ký tự chữ cái chứ số và ký tự đặt biệt như `!@#$%`,... sẽ không bị ảnh hưởng nên ta sẽ `$0` sẽ không bị ảnh hưởng. Sau đó ta dùng đường dẫn `/bin/bash` để quay về shell bình thường.
+
+**END**
